@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: billing-service
+  namespace: production
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: billing-service
+  template:
+    metadata:
+      labels:
+        app: billing-service
+    spec:
+      serviceAccountName: billing-sa
+#      securityContext:
+#        runAsNonRoot: true
+      containers:
+      - name: billing-app
+        image: hashicorp/http-echo:0.2.3
+        args:
+          - "-text=Acesso autorizado ao Billing Service com mTLS"
+          - "-listen=:8080"
+        ports:
+        - containerPort: 8080
+#        securityContext:
+#          allowPrivilegeEscalation: false
+#          privileged: false
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: billing-service
+  namespace: production
+spec:
+  selector:
+    app: billing-service
+  ports:
+  - protocol: TCP
+    port: 8080
+    targetPort: 8080

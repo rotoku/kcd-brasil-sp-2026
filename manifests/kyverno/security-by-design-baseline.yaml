@@ -1,0 +1,142 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: security-by-design-baseline
+  annotations:
+    policies.kyverno.io/title: Security by Design Baseline
+    policies.kyverno.io/subject: Pod
+    policies.kyverno.io/description: >-
+      Implementa um baseline de segurança rigoroso: bloqueia tags latest,
+      exige usuários non-root, proíbe containers privilegiados e escalação 
+      de privilégios, além de restringir hostPaths perigosos.
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    # 1. Bloqueia o uso da tag :latest
+    - name: disallow-latest-tag
+      match:
+        any:
+        - resources:
+            kinds:
+              - Pod
+      exclude:
+        any:
+        - resources:
+            namespaces:
+              - kube-system
+              - istio-system
+              - kyverno
+      validate:
+        message: "O uso da tag 'latest' é proibido. Especifique uma tag imutável."
+        pattern:
+          spec:
+            =(ephemeralContainers):
+              - image: "!*:latest"
+            =(initContainers):
+              - image: "!*:latest"
+            containers:
+              - image: "!*:latest"
+
+    # 2. Exige a execução como usuário Non-Root
+    - name: require-run-as-nonroot
+      match:
+        any:
+        - resources:
+            kinds:
+              - Pod
+      exclude:
+        any:
+        - resources:
+            namespaces:
+              - kube-system
+              - istio-system
+              - kyverno
+      validate:
+        message: "A execução como root é proibida. O Pod ou Container deve definir runAsNonRoot: true."
+        anyPattern:
+          - spec:
+              securityContext:
+                runAsNonRoot: true
+          - spec:
+              containers:
+                - securityContext:
+                    runAsNonRoot: true
+
+    # 3. Bloqueia containers privilegiados
+    - name: disallow-privileged-containers
+      match:
+        any:
+        - resources:
+            kinds:
+              - Pod
+      exclude:
+        any:
+        - resources:
+            namespaces:
+              - kube-system
+              - istio-system
+              - kyverno
+      validate:
+        message: "Containers privilegiados (privileged: true) são estritamente proibidos."
+        pattern:
+          spec:
+            =(ephemeralContainers):
+              - =(securityContext):
+                  =(privileged): "false"
+            =(initContainers):
+              - =(securityContext):
+                  =(privileged): "false"
+            containers:
+              - =(securityContext):
+                  =(privileged): "false"
+
+    # 4. Bloqueia escalação de privilégios (Privilege Escalation)
+    - name: disallow-privilege-escalation
+      match:
+        any:
+        - resources:
+            kinds:
+              - Pod
+      exclude:
+        any:
+        - resources:
+            namespaces:
+              - kube-system
+              - istio-system
+              - kyverno
+      validate:
+        message: "A escalação de privilégios não é permitida. Defina allowPrivilegeEscalation: false."
+        pattern:
+          spec:
+            =(ephemeralContainers):
+              - =(securityContext):
+                  =(allowPrivilegeEscalation): "false"
+            =(initContainers):
+              - =(securityContext):
+                  =(allowPrivilegeEscalation): "false"
+            containers:
+              - =(securityContext):
+                  =(allowPrivilegeEscalation): "false"
+
+    # 5. Restringe mapeamento de hostPaths críticos
+    - name: restrict-dangerous-hostpaths
+      match:
+        any:
+        - resources:
+            kinds:
+              - Pod
+      exclude:
+        any:
+        - resources:
+            namespaces:
+              - kube-system
+              - istio-system
+              - kyverno
+      validate:
+        message: "Montagem de diretórios sensíveis do host (ex: /var/run, /etc, /root, /proc) via hostPath é proibida."
+        pattern:
+          spec:
+            =(volumes):
+              - =(hostPath):
+                  path: "!/var/run* & !/etc* & !/root* & !/proc* & !/sys* & !/var/lib/kubelet*"

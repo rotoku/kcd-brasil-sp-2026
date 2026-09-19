@@ -1,0 +1,17 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: frontend-sa
+  namespace: production
+  annotations:
+    description: "Identidade do servico de frontend para mTLS"
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: billing-sa
+  namespace: production
+  annotations:
+    description: "Identidade do servico de faturamento para mTLS"

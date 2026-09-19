@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: production
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      # A ServiceAccount que fornece a identidade para o mTLS do Istio
+      serviceAccountName: frontend-sa
+      containers:
+      - name: frontend-app
+        image: nginx:1.31.5
+        ports:
+        - containerPort: 80

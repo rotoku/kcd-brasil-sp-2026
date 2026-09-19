@@ -1,0 +1,19 @@
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: require-frontend-identity
+  namespace: production
+spec:
+  selector:
+    matchLabels:
+      app: billing-service
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        # Exige a identidade criptográfica exata da Service Account do Front-end
+        principals: ["cluster.local/ns/production/sa/frontend-sa"]
+    to:
+    - operation:
+        methods: ["GET", "POST", "HEAD"]
+        ports: ["8080"]

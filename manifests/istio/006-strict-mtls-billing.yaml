@@ -1,0 +1,11 @@
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: strict-mtls-billing
+  namespace: production
+spec:
+  selector:
+    matchLabels:
+      app: billing-service
+  mtls:
+    mode: STRICT

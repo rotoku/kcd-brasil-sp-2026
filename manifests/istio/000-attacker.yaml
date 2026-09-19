@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: attacker
+  namespace: default
+spec:
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+  containers:
+  - name: attacker-app
+    image: curlimages/curl:8.6.0
+    command: ["sleep", "3600"]
+    securityContext:
+      allowPrivilegeEscalation: false
+      privileged: false
